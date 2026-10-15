@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "OpenEnvelope – open-source email tracker for Gmail",
   "short_name": "OpenEnvelope",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Know when your Gmail emails are opened and links are clicked. Open source, self-hosted, no branding added to your emails.",
   "icons": {
     "16": "icons/icon16.png",

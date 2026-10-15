@@ -8,6 +8,9 @@ export const config = {
   dbPath: env.DB_PATH || path.join(env.DATA_DIR || path.resolve('data'), 'openenvelope.db'),
   adminToken: env.ADMIN_TOKEN || '',
   allowSignup: env.ALLOW_SIGNUP === 'true',
+  // Invite code: anyone who knows it can create an account from the extension (POST /api/users).
+  signupCode: env.SIGNUP_CODE || '',
+  signupRateLimit: Number(env.SIGNUP_RATE_LIMIT || 10), // signup attempts per IP per hour
   // How visitor IPs are stored: "hash" (default, salted SHA-256), "full", or "none".
   ipMode: env.IP_MODE || 'hash',
   ipSalt: env.IP_SALT || 'change-me-please',

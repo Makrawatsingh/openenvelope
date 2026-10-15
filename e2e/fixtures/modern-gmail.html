@@ -1,0 +1,40 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Inbox (3) - me@example.com - Gmail (modern compose fixture)</title>
+<style>body{font:14px Roboto,Arial;margin:0;background:#f6f8fc}.nH.Hd{position:fixed;bottom:0;width:500px;background:#fff;border-radius:8px 8px 0 0;box-shadow:0 4px 18px #0004}
+#c1{right:24px}#c2{right:548px}.aDh{background:#f2f6fc;padding:10px 14px;font-weight:500;border-radius:8px 8px 0 0}.aoD{padding:6px 14px;border-bottom:1px solid #eee;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.afV{background:#e8eaed;border-radius:12px;padding:2px 8px}.agP{border:0;font:inherit;flex:1}.Am{min-height:120px;padding:12px 14px;outline:none}.btC{padding:10px 14px}
+.T-I{background:#0b57d0;color:#fff;border-radius:18px;padding:9px 22px;font-weight:500;cursor:pointer;display:inline-block}</style></head>
+<body>
+<!-- Stand-in modelled on the 2024-2026 Gmail compose: recipient chips carry NO email/data-hovercard-id attributes,
+     only an aria-label/tooltip; a just-typed address sits in the "To recipients" input. Not Gmail. -->
+<header><a aria-label="Google Account: Makrawat Singh (me@example.com)" href="https://accounts.google.com/SignOutOptions">M</a></header>
+<div class="nH Hd" id="c1" role="dialog">
+  <div class="aDh">New Message</div>
+  <div class="aoD hl">From <span class="az2">Makrawat Singh &lt;me@example.com&gt;</span></div>
+  <div class="aoD az6"><span class="afx">To</span>
+    <div class="afZ" role="listbox" aria-label="Search Field">
+      <div role="option" class="afV" data-name="Asha Verma" aria-label="Asha Verma &lt;Asha.Verma@college.edu&gt;" tabindex="-1"><span class="akl">Asha Verma</span><span class="afX" role="button" aria-label="Remove"></span></div>
+      <input class="agP aFw" aria-label="To recipients" value="second.account@gmail.com">
+    </div>
+  </div>
+  <div class="aoD az6"><span class="afx">Cc</span>
+    <div class="afZ" role="listbox"><div role="option" class="afV" data-tooltip="ravi@startup.in"><span class="akl">Ravi</span></div><input class="agP" aria-label="Cc recipients"></div>
+  </div>
+  <div class="aoD"><input name="subjectbox" value="Modern compose recipients test" style="border:0;width:100%;font:inherit" aria-label="Subject"></div>
+  <div class="Am" contenteditable="true" role="textbox" aria-label="Message Body" g_editable="true">Hi Asha, write to <a href="mailto:support@body-example.com">support@body-example.com</a> if needed.<br>-- <br>Makrawat · me@example.com</div>
+  <div class="btC"><div><div role="button" class="T-I aoO" data-tooltip="Send ‪(Ctrl-Enter)‬" tabindex="0">Send</div></div></div>
+</div>
+<div class="nH Hd" id="c2" role="dialog">
+  <div class="aDh">New Message</div>
+  <div class="aoD">To: Sam Lee &lt;sam.lee@example.org&gt;</div>
+  <div class="aoD"><input name="subjectbox" value="Fallback regex recipients test" style="border:0;width:100%;font:inherit" aria-label="Subject"></div>
+  <div class="Am" contenteditable="true" role="textbox" aria-label="Message Body" g_editable="true">Body mentions nobody@body-example.com</div>
+  <div class="btC"><div><div role="button" class="T-I aoO" data-tooltip="Send ‪(Ctrl-Enter)‬" tabindex="0">Send</div></div></div>
+</div>
+<script>
+  window.__sent = [];
+  document.querySelectorAll('[data-tooltip^="Send"]').forEach((b) => b.addEventListener('click', () => {
+    const c = b.closest('.nH');
+    window.__sent.push({ compose: c.id, html: c.querySelector('.Am').innerHTML, at: Date.now() });
+  }));
+</script>
+</body></html>

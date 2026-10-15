@@ -79,6 +79,17 @@ chrome.notifications.onClicked.addListener((nid) => {
   chrome.tabs.create({ url: chrome.runtime.getURL(`dashboard/dashboard.html${id ? '#email=' + id : ''}`) });
 });
 
+// Free-tier hosts (e.g. Render) sleep when idle and take ~30-60 s to start. Gmail calls this on load
+// so the server is awake by the time you press Send. /healthz needs no API key.
+let lastWake = 0;
+async function wakeServer() {
+  const { serverUrl } = await getConfig();
+  if (!serverUrl || Date.now() - lastWake < 60_000) return false;
+  lastWake = Date.now();
+  fetch(serverUrl + '/healthz', { cache: 'no-store' }).catch(() => {});
+  return true;
+}
+
 // ---- Messages from the content script / pages ----
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   (async () => {
@@ -87,6 +98,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
       case 'config': { const c = await getConfig(); return { configured: !!(c.serverUrl && c.apiKey), serverUrl: c.serverUrl }; }
       case 'settings': return (await api('GET', '/api/me')).settings;
       case 'poll-now': return pollEvents();
+      case 'wake': return wakeServer();
       case 'send-campaign': return sendCampaignViaGmail(msg.campaignId);
       case 'attachments': return listAttachments(msg.pageToken);
       case 'open-dashboard': return chrome.tabs.create({ url: chrome.runtime.getURL(`dashboard/dashboard.html${msg.hash || ''}`) });

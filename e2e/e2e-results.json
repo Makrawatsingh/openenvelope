@@ -1,6 +1,6 @@
 {
-  "ran_at": "2026-10-15T09:55:26.615Z",
-  "passed": 32,
+  "ran_at": "2026-10-15T12:54:01.919Z",
+  "passed": 45,
   "failed": 0,
   "results": [
     {
@@ -36,7 +36,7 @@
     {
       "name": "pixel inserted into the outgoing HTML",
       "ok": true,
-      "detail": "/t/1IVQR6vHTFG4Ms4N.gif"
+      "detail": "/t/1wWvLF7uw6jTavEG.gif"
     },
     {
       "name": "link rewritten to a tracked redirect",
@@ -155,6 +155,71 @@
     },
     {
       "name": "web dashboard (served by the server) works at phone width without horizontal overflow",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "modern compose: recipients read from chip aria-label, tooltip and the typed To input",
+      "ok": true,
+      "detail": "[\"asha.verma@college.edu\",\"ravi@startup.in\",\"second.account@gmail.com\"]"
+    },
+    {
+      "name": "modern compose: body addresses and the sender's own address are excluded",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "unknown compose markup: regex fallback over the recipients row",
+      "ok": true,
+      "detail": "[\"sam.lee@example.org\"] sent=c1:true,c2:true"
+    },
+    {
+      "name": "classic chip markup still captured",
+      "ok": true,
+      "detail": "[\"prof.rao@iitkgp.ac.in\"]"
+    },
+    {
+      "name": "toggle shows \"Waking your server…\" while the server is slow to answer",
+      "ok": true,
+      "detail": "✓✓ Waking your server…"
+    },
+    {
+      "name": "send pressed while the server is waking up waits and goes out tracked",
+      "ok": true,
+      "detail": "sends=1"
+    },
+    {
+      "name": "toggle returns to \"Tracking\" after the server answered",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "server down: email still sends (untracked) and a clear toast says so",
+      "ok": true,
+      "detail": "OpenEnvelope could not reach your server, so this email went out untracked. If your server is on a free plan it may be asleep; open Settings → Save & test to wake it."
+    },
+    {
+      "name": "settings shows \"New here? Create an account\" when not connected",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "wrong invite code shows a clear error",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "existing email shows a clear error",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "right invite code creates the account, saves key + server and connects",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "new API key and server URL saved in extension settings",
       "ok": true,
       "detail": ""
     },

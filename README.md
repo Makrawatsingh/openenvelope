@@ -123,7 +123,19 @@ Set these environment variables (see `server/.env.example`): `BASE_URL` (your pu
 - **Render:** "New → Blueprint", point it at your fork (uses `render.yaml`). Render's free web service sleeps when idle and has no persistent disk, so data is lost on restart. Fine for a demo; add a paid disk for real use.
 - **Railway:** "Deploy from GitHub repo" (it detects the Dockerfile), add a volume mounted at `/data`, set the variables.
 
-Free tiers and their limits change often, so check the provider's current pricing. Create your account on the server with `npm run create-user` (in a shell on the host), or call `POST /api/users` with `Authorization: Bearer $ADMIN_TOKEN`.
+Free tiers and their limits change often, so check the provider's current pricing. Create your account on the server with `npm run create-user` (in a shell on the host), call `POST /api/users` with `Authorization: Bearer $ADMIN_TOKEN`, or set `SIGNUP_CODE` and use **Create account** in the extension's Settings (see below).
+
+**Free-plan servers sleep.** Render's free plan stops the server after ~15 min idle and takes ~30-60 s to start again. The extension pings your server when Gmail loads to wake it early; if you press Send while it is still starting, the toggle shows *Waking your server…* and the email waits (up to ~45 s) and goes out tracked. If the server never answers, the email goes out untracked and a message says so.
+
+## Share with friends
+
+Friends can use **your** server with their own account (each person sees only their own emails):
+
+1. **Set an invite code.** On Render: open your service → **Environment** → **Add Environment Variable** → key `SIGNUP_CODE`, value: any code you choose (e.g. `my-friends-2026`) → **Save**. Render redeploys with it. (Other hosts: set the `SIGNUP_CODE` environment variable.)
+2. **Send your friend three things:** the extension ZIP (GitHub → **Code → Download ZIP**), your server URL (e.g. `https://openenvelope.onrender.com`) and the invite code.
+3. **Your friend:** unzips, opens `chrome://extensions`, turns on **Developer mode**, clicks **Load unpacked** and picks the `extension` folder. In the Settings page that opens, under **New here? Create an account**, they enter the server URL, their email and the invite code, then click **Create account**. The extension saves their key and connects. Reload Gmail.
+
+Sign-ups are limited to 10 attempts per hour per IP (`SIGNUP_RATE_LIMIT`). Anyone with the code can create an account, so share it only with people you trust; change or remove `SIGNUP_CODE` to stop new sign-ups. On Render's free plan, a restart wipes everyone's accounts and data, so use a host with a persistent disk for real use.
 
 **SMTP with Gmail:** turn on 2-Step Verification, create an [App Password](https://myaccount.google.com/apppasswords), and set
 `SMTP_URL=smtps://you%40gmail.com:APP_PASSWORD@smtp.gmail.com:465` and `SMTP_FROM="Your Name <you@gmail.com>"`.
@@ -152,8 +164,8 @@ Scopes requested: `gmail.send`, `gmail.readonly`. Without this setup, everything
 
 ## What is tested
 
-- `cd server && npm test` runs **33 backend tests** (node:test) on a real HTTP server: auth, pixel and proxy parsing, Gmail delivery-prefetch filtering, self-open filtering, hot/revival alerts, custom alert rules, IP modes, webhooks, activity record PDF, contacts/privacy, templates, polls, mail merge (CSV parsing, per-recipient instrumentation, unsubscribe, bounce, SMTP dry run, scheduling), no-open and no-reply reminders, digest timing, tracked PDFs (password, time per page, revoke), video, e-signature with audit trail.
-- `cd e2e && npm install && npx playwright install chromium && npm run e2e` runs **32 end-to-end checks**. It starts the real server and loads the real unpacked extension into headless Chromium, with a local stand-in Gmail page (`e2e/fixtures/fake-gmail.html`). The checks: tracked send → pixel inserted and link rewritten → open via simulated Google image proxy → notification payload and badge → click redirect → ✓✓ in the list → own-view filtering → reminder from the live scheduler → digest → mail-merge dry run → PDF viewer and signing in the browser → popup/dashboard/phone layout → no console errors. Results land in `e2e/e2e-results.json`.
+- `cd server && npm test` runs **38 backend tests** (node:test) on a real HTTP server: auth, invite-code sign-up (wrong code, duplicate email, rate limit), pixel and proxy parsing, Gmail delivery-prefetch filtering, self-open filtering, hot/revival alerts, custom alert rules, IP modes, webhooks, activity record PDF, contacts/privacy, templates, polls, mail merge (CSV parsing, per-recipient instrumentation, unsubscribe, bounce, SMTP dry run, scheduling), no-open and no-reply reminders, digest timing, tracked PDFs (password, time per page, revoke), video, e-signature with audit trail.
+- `cd e2e && npm install && npx playwright install chromium && npm run e2e` runs **45 end-to-end checks**. It starts the real server and loads the real unpacked extension into headless Chromium, with local stand-in Gmail pages (`e2e/fixtures/fake-gmail.html`, and `modern-gmail.html` whose recipient chips carry no email attributes, like today's Gmail). The checks: tracked send → pixel inserted and link rewritten → open via simulated Google image proxy → notification payload and badge → click redirect → ✓✓ in the list → own-view filtering → reminder from the live scheduler → digest → mail-merge dry run → PDF viewer and signing in the browser → popup/dashboard/phone layout → recipient capture in modern and unknown compose markup → sleeping server (slow, then down) → invite-code sign-up from Settings → no console errors. Results land in `e2e/e2e-results.json`.
 - **Not yet verified in real Gmail:** the selectors against today's live Gmail, Schedule send, auto-BCC, Gmail-API sending, reply detection and the attachment list. These need a real Google account and an OAuth client. Test them with a throwaway Gmail account first.
 
 ## Project layout

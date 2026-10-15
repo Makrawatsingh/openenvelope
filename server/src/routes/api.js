@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'node:crypto';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { newId, hashKey, now, parseJSON, sha256 } from '../util.js';
 import { mergeSettings, DEFAULT_SETTINGS } from '../core.js';
@@ -9,15 +10,36 @@ export function apiRouter({ core, config, auth, mailer }) {
   const { Q } = core;
 
   // ---- Accounts ----
+  // Constant-time comparison (hash both sides so lengths always match).
+  const safeEqual = (a, b) => crypto.timingSafeEqual(crypto.createHash('sha256').update(String(a)).digest(), crypto.createHash('sha256').update(String(b)).digest());
+  // Simple in-memory rate limit for signups: N attempts per IP per hour (admin calls are exempt).
+  const signupHits = new Map();
+  const signupLimited = (ip) => {
+    const t = Date.now(), hour = 3600_000;
+    const hits = (signupHits.get(ip) || []).filter((x) => t - x < hour);
+    hits.push(t); signupHits.set(ip, hits);
+    if (signupHits.size > 5000) for (const [k, v] of signupHits) if (!v.some((x) => t - x < hour)) signupHits.delete(k);
+    return hits.length > (config.signupRateLimit || 10);
+  };
+
   r.post('/users', (req, res) => {
-    const admin = (req.headers.authorization || '') === `Bearer ${config.adminToken}` && config.adminToken;
-    if (!admin && !config.allowSignup) return res.status(403).json({ error: 'signup disabled; use ADMIN_TOKEN or `npm run create-user`' });
-    const { email, name } = req.body || {};
-    if (!email || !/@/.test(email)) return res.status(400).json({ error: 'email required' });
-    if (Q.get('SELECT id FROM users WHERE email=?', email)) return res.status(409).json({ error: 'user exists' });
+    const admin = !!config.adminToken && safeEqual(req.headers.authorization || '', `Bearer ${config.adminToken}`);
+    const { email: rawEmail, name, invite_code } = req.body || {};
+    if (!admin) {
+      if (signupLimited(req.ip || 'unknown')) return res.status(429).json({ error: 'Too many signup attempts from this network. Try again in an hour.' });
+      if (config.signupCode) {
+        if (!invite_code) return res.status(403).json({ error: 'An invite code is required to create an account on this server.' });
+        if (!safeEqual(String(invite_code).trim(), config.signupCode)) return res.status(403).json({ error: 'Wrong invite code.' });
+      } else if (!config.allowSignup) {
+        return res.status(403).json({ error: 'Signup is disabled on this server. Ask the owner to set SIGNUP_CODE, or use ADMIN_TOKEN / `npm run create-user`.' });
+      }
+    }
+    const email = String(rawEmail || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'A valid email address is required.' });
+    if (Q.get('SELECT id FROM users WHERE lower(email)=?', email)) return res.status(409).json({ error: 'An account with this email already exists on this server. Use your existing API key, or ask the server owner for a new one.' });
     const key = 'oe_' + newId(24);
     const id = newId();
-    Q.run('INSERT INTO users (id,email,name,api_key_hash,created_at) VALUES (?,?,?,?,?)', id, email, name || null, hashKey(key), now());
+    Q.run('INSERT INTO users (id,email,name,api_key_hash,created_at) VALUES (?,?,?,?,?)', id, email, name ? String(name).slice(0, 120) : null, hashKey(key), now());
     res.status(201).json({ id, email, api_key: key });
   });
 

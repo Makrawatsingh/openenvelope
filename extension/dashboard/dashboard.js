@@ -257,16 +257,61 @@ async function attachments() {
   });
 }
 
+// ---------- Create account with an invite code ----------
+export function signupErrorMessage(status, error) {
+  if (status === 403 && /wrong invite code/i.test(error || '')) return 'Wrong invite code. Check it with the person who runs the server (it is case-sensitive).';
+  if (status === 403 && /invite code is required/i.test(error || '')) return 'This server needs an invite code.';
+  if (status === 403) return 'This server does not allow sign-ups. Ask its owner to set SIGNUP_CODE, or for an API key.';
+  if (status === 409) return 'An account with this email already exists on this server. Paste your API key above instead, or ask the server owner for a new key.';
+  if (status === 429) return 'Too many attempts from your network. Try again in an hour.';
+  if (status === 400) return error || 'Please enter a valid email address.';
+  if (status === 404) return 'That URL does not look like an OpenEnvelope server (or it runs an older version without sign-up).';
+  if (!status || status === 502 || status === 503 || status === 504) return 'Your server seems to be waking up (free servers sleep when idle). Wait about 1 minute and click Create account again.';
+  return error || `Server error (HTTP ${status}).`;
+}
+
+async function createAccount() {
+  const msg = view.querySelector('#su-msg'), btn = view.querySelector('#su-go');
+  const say = (html) => { msg.innerHTML = html; };
+  const serverUrl = val('#su-srv').replace(/\/+$/, ''), email = val('#su-email'), code = val('#su-code');
+  let origin;
+  try { origin = new URL(serverUrl).origin; if (!/^https?:$/.test(new URL(serverUrl).protocol)) throw 0; } catch { return say('<span class="err">Enter the server URL, e.g. https://openenvelope.onrender.com</span>'); }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return say('<span class="err">Enter your email address.</span>');
+  if (!code) return say('<span class="err">Enter the invite code.</span>');
+  // Must run inside the click (user gesture), before any await on the network.
+  if (isExtension) { try { await chrome.permissions.request({ origins: [origin + '/*'] }); } catch {} }
+  btn.disabled = true;
+  say('<span class="muted">Creating your account… (if the server was asleep this can take up to a minute)</span>');
+  let status = 0, data = {};
+  try {
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 75_000);
+    const r = await fetch(serverUrl + '/api/users', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, invite_code: code }), signal: ctl.signal });
+    clearTimeout(t);
+    status = r.status;
+    data = (r.headers.get('content-type') || '').includes('json') ? await r.json() : {};
+  } catch { status = 0; }
+  btn.disabled = false;
+  if (status !== 201 || !data.api_key) return say(`<span class="err">${esc(signupErrorMessage(status, data.error))}</span>`);
+  await setConfig({ serverUrl, apiKey: data.api_key });
+  // Same check as "Save & test": re-render, which calls /api/me with the new key.
+  settings(`<p class="notice" id="su-done">Account created for ${esc(data.email)}. Your API key (saved in the extension; keep a copy somewhere safe): <code>${esc(data.api_key)}</code><br>Now reload Gmail and you will see the ✓✓ Tracking toggle when you write an email.</p>`);
+}
+
 // ---------- Settings ----------
-async function settings() {
+async function settings(flash = '') {
   const c = await getConfig();
   let me = null, err = '';
   if (c.serverUrl && c.apiKey) { try { me = await api('GET', '/api/me'); } catch (e) { err = e.message; } }
   const s = me?.settings || {};
   view.innerHTML = `<h1>Settings</h1>
-  <section class="panel"><h2>Server</h2><p class="muted">OpenEnvelope talks only to the server you run. Create a key with <code>npm run create-user -- you@gmail.com</code>.</p>
+  <section class="panel"><h2>Server</h2><p class="muted">OpenEnvelope talks only to the server you (or a friend) run. Got an invite code? Use <b>Create account</b> below. Running your own server? Set <code>SIGNUP_CODE</code> on it and create your account below, or make a key with <code>npm run create-user -- you@gmail.com</code>.</p>
   <div class="row"><div><label for="srv">Server URL</label><input id="srv" value="${esc(c.serverUrl)}" placeholder="https://openenvelope-yourname.onrender.com"></div><div><label for="key">API key</label><input id="key" type="password" value="${esc(c.apiKey)}" autocomplete="off"></div><button class="fit" id="save-conn">Save &amp; test</button></div>
-  <p id="conn">${me ? `<span class="ok-msg">Connected as ${esc(me.email)}</span>` : err ? `<span class="err">${esc(err)}</span>` : ''}</p></section>
+  <p id="conn">${me ? `<span class="ok-msg">Connected as ${esc(me.email)}</span>` : err ? `<span class="err">${esc(err === 'Failed to fetch' ? 'Could not reach the server. If it is on a free plan it may be waking up; wait ~1 minute and click Save & test again.' : err)}</span>` : ''}</p>${flash}</section>
+  ${me ? '' : `<section class="panel" id="signup"><h2>New here? Create an account</h2><p class="muted">Ask the person who runs the server for its URL and invite code.</p>
+  <div class="row"><div><label for="su-srv">Server URL</label><input id="su-srv" value="${esc(c.serverUrl)}" placeholder="https://openenvelope.onrender.com"></div>
+  <div><label for="su-email">Your email</label><input id="su-email" type="email" placeholder="you@gmail.com" autocomplete="email"></div>
+  <div><label for="su-code">Invite code</label><input id="su-code" autocomplete="off"></div><button class="fit" id="su-go">Create account</button></div>
+  <p id="su-msg" role="status"></p></section>`}
   ${me ? `<section class="panel"><h2>Tracking</h2>
     <label><input type="checkbox" data-k="track_by_default" ${s.track_by_default ? 'checked' : ''}> Track every new email by default</label>
     <label><input type="checkbox" data-k="track_links" ${s.track_links ? 'checked' : ''}> Track link clicks</label>
@@ -290,7 +335,7 @@ async function settings() {
     if (isExtension && serverUrl && !/^https:\/\/mail\.google\.com/.test(serverUrl)) { try { await chrome.permissions.request({ origins: [new URL(serverUrl).origin + '/*'] }); } catch {} }
     await setConfig({ serverUrl, apiKey }); settings();
   };
-  if (!me) return;
+  if (!me) { view.querySelector('#su-go').onclick = () => createAccount(); return; }
   view.querySelector('#prev').onclick = async () => { view.querySelector('#digest').innerHTML = `<div class="notice">${(await api('GET', `/api/digest/preview?period=${val('#dg') === 'off' ? 'daily' : val('#dg')}`)).html}</div>`; };
   view.querySelector('#save').onclick = async () => {
     const body = { alerts: {} };

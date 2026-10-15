@@ -12,5 +12,8 @@ services:
         generateValue: true
       - key: ADMIN_TOKEN
         generateValue: true
+      # Invite code your friends type in the extension to create an account on your server.
+      - key: SIGNUP_CODE
+        sync: false
       - key: DATA_DIR
         value: /data

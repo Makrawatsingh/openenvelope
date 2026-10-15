@@ -20,7 +20,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ---- 1. server ----
 const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'openenvelope-e2e-'));
-const env = { ...process.env, PORT: String(PORT), BASE_URL: BASE, DATA_DIR: dataDir, SMTP_URL: 'json', SMTP_FROM: 'me@example.com', SCHEDULER_INTERVAL_MS: '1500', IP_MODE: 'hash', IP_SALT: 'e2e' };
+const env = { ...process.env, PORT: String(PORT), BASE_URL: BASE, DATA_DIR: dataDir, SMTP_URL: 'json', SMTP_FROM: 'me@example.com', SCHEDULER_INTERVAL_MS: '1500', IP_MODE: 'hash', IP_SALT: 'e2e', SIGNUP_CODE: 'e2e-invite' };
 const server = spawn(process.execPath, ['--no-warnings', 'src/index.js'], { cwd: path.join(root, 'server'), env, stdio: ['ignore', 'pipe', 'pipe'] });
 let serverLog = ''; server.stdout.on('data', (d) => (serverLog += d)); server.stderr.on('data', (d) => (serverLog += d));
 for (let i = 0; i < 50; i++) { try { if ((await fetch(BASE + '/healthz')).ok) break; } catch {} await sleep(200); }
@@ -61,7 +61,8 @@ await extPage.evaluate(() => new Promise((r) => chrome.runtime.sendMessage({ typ
 
 // ---- 3. fake Gmail compose → send ----
 const fixture = fs.readFileSync(path.join(here, 'fixtures', 'fake-gmail.html'), 'utf8');
-await ctx.route('https://mail.google.com/**', (r) => r.fulfill({ status: 200, contentType: 'text/html', body: fixture }));
+const modernFixture = fs.readFileSync(path.join(here, 'fixtures', 'modern-gmail.html'), 'utf8');
+await ctx.route('https://mail.google.com/**', (r) => r.fulfill({ status: 200, contentType: 'text/html', body: r.request().url().includes('fixture=modern') ? modernFixture : fixture }));
 const proxyHits = [];
 await ctx.route('https://ci3.googleusercontent.com/**', (r) => { proxyHits.push(r.request().url()); r.fulfill({ status: 200, contentType: 'image/gif', body: Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64') }); });
 const gmail = await ctx.newPage(); watch(gmail, 'gmail');
@@ -205,6 +206,96 @@ await web.goto(`${BASE}/app/dashboard/dashboard.html#activity`); await web.waitF
 const overflow = await web.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
 check('web dashboard (served by the server) works at phone width without horizontal overflow', (await web.$$('#feed li')).length > 0 && !overflow);
 await web.screenshot({ path: path.join(shots, 'web-dashboard-mobile.png') });
+
+// ---- 12. recipients in a modern-Gmail-like compose (chips without email attributes) ----
+{
+  const mg = await ctx.newPage(); watch(mg, 'gmail-modern');
+  await mg.goto('https://mail.google.com/mail/u/0/?fixture=modern#inbox');
+  await mg.waitForFunction(() => document.querySelectorAll('.openenvelope-bar').length === 2, null, { timeout: 10000 }).catch(() => {});
+  await sleep(800);
+  await mg.click('#c1 [data-tooltip^="Send"]'); await mg.waitForFunction(() => window.__sent.some((s) => s.compose === 'c1'), null, { timeout: 12000 }).catch(() => {});
+  await sleep(200); // let the first compose's synthetic send finish
+  await mg.click('#c2 [data-tooltip^="Send"]'); await mg.waitForFunction(() => window.__sent.some((s) => s.compose === 'c2'), null, { timeout: 12000 }).catch(() => {});
+  await sleep(300);
+  const list = await api('GET', '/api/emails?limit=50');
+  const m1 = list.find((x) => x.subject === 'Modern compose recipients test');
+  const m2 = list.find((x) => x.subject === 'Fallback regex recipients test');
+  const r1 = [...(m1?.recipients || [])].sort();
+  check('modern compose: recipients read from chip aria-label, tooltip and the typed To input', JSON.stringify(r1) === JSON.stringify(['asha.verma@college.edu', 'ravi@startup.in', 'second.account@gmail.com']), JSON.stringify(r1));
+  check('modern compose: body addresses and the sender\'s own address are excluded', !r1.some((x) => /body-example|me@example\.com/.test(x)));
+  const sentM = await mg.evaluate(() => window.__sent.map((x) => x.compose + ':' + /\/t\//.test(x.html)));
+  check('unknown compose markup: regex fallback over the recipients row', JSON.stringify(m2?.recipients || []) === JSON.stringify(['sam.lee@example.org']), JSON.stringify(m2?.recipients) + ' sent=' + sentM.join(','));
+  const first = list.find((x) => x.id === emailId);
+  check('classic chip markup still captured', (first?.recipients || []).includes('prof.rao@iitkgp.ac.in'), JSON.stringify(first?.recipients));
+  await mg.close();
+}
+
+// ---- 13. sleeping server (Render free cold start): slow reserve, then a dead server ----
+{
+  const http = await import('node:http');
+  let mode = 'slow';
+  const PROXY = 8791;
+  const proxy = http.createServer((req, res) => {
+    if (mode === 'down') return req.socket.destroy();
+    const go = () => {
+      const up = http.request({ host: '127.0.0.1', port: PORT, path: req.url, method: req.method, headers: req.headers }, (ur) => { res.writeHead(ur.statusCode, ur.headers); ur.pipe(res); });
+      up.on('error', () => res.destroy()); req.pipe(up);
+    };
+    if (mode === 'slow' && req.url.startsWith('/api/emails/reserve')) setTimeout(go, 5000); else go();
+  });
+  await new Promise((r) => proxy.listen(PROXY, '127.0.0.1', r));
+  const PURL = `http://127.0.0.1:${PROXY}`;
+  await extPage.evaluate(async (s) => chrome.storage.sync.set({ serverUrl: s }), PURL);
+  const cold = await ctx.newPage(); cold.on('pageerror', (er) => errors.push(`gmail-cold: ${er.message}`)); // console errors here are the proxy's loopback image block, a test artifact
+  await cold.goto('https://mail.google.com/mail/u/0/#inbox');
+  await cold.waitForSelector('.openenvelope-bar', { timeout: 10000 }).catch(() => {});
+  await sleep(2200);
+  const wakingText = await cold.textContent('.openenvelope-bar .tk-toggle').catch(() => '');
+  check('toggle shows "Waking your server…" while the server is slow to answer', /Waking your server/.test(wakingText), wakingText.trim());
+  await cold.click('[data-tooltip^="Send"]'); // pressed before the server answered
+  await cold.waitForFunction(() => window.__sent.length > 0, null, { timeout: 20000 }).catch(() => {});
+  const coldSent = await cold.evaluate(() => window.__sent);
+  check('send pressed while the server is waking up waits and goes out tracked', coldSent.length === 1 && /\/t\/[A-Za-z0-9_-]+\.gif/.test(coldSent[0].html), `sends=${coldSent.length}`);
+  check('toggle returns to "Tracking" after the server answered', /Tracking/.test(await cold.textContent('.openenvelope-bar .tk-toggle')));
+  await cold.close();
+  mode = 'down';
+  const dead = await ctx.newPage(); dead.on('pageerror', (er) => errors.push(`gmail-dead: ${er.message}`));
+  await dead.goto('https://mail.google.com/mail/u/0/#inbox');
+  await dead.waitForSelector('.openenvelope-bar', { timeout: 10000 }).catch(() => {});
+  await sleep(1000);
+  await dead.click('[data-tooltip^="Send"]');
+  await dead.waitForFunction(() => window.__sent.length > 0, null, { timeout: 20000 }).catch(() => {});
+  const deadSent = await dead.evaluate(() => window.__sent);
+  const toastText = await dead.textContent('.openenvelope-toast').catch(() => '');
+  check('server down: email still sends (untracked) and a clear toast says so', deadSent.length === 1 && !/\/t\/[A-Za-z0-9_-]+\.gif/.test(deadSent[0].html) && /went out untracked/.test(toastText), toastText);
+  await dead.close();
+  await extPage.evaluate(async (s) => chrome.storage.sync.set({ serverUrl: s }), BASE);
+  proxy.close();
+}
+
+// ---- 14. friend creates an account from the settings page with the invite code ----
+{
+  const su = await ctx.newPage(); su.on('pageerror', (er) => errors.push(`signup: ${er.message}`)); // 403/409 responses are expected here
+  await su.goto(`chrome-extension://${extId}/dashboard/dashboard.html#settings`);
+  await su.evaluate(async () => { await chrome.storage.sync.set({ serverUrl: '', apiKey: '' }); });
+  await su.reload(); await su.waitForSelector('#signup', { timeout: 8000 }).catch(() => {});
+  check('settings shows "New here? Create an account" when not connected', /New here\? Create an account/.test(await su.textContent('#signup').catch(() => '')));
+  await su.evaluate(() => { chrome.permissions.request = async () => true; }); // headless: no permission prompt UI
+  await su.fill('#su-srv', BASE); await su.fill('#su-email', 'friend@example.com'); await su.fill('#su-code', 'wrong-code');
+  await su.click('#su-go'); await su.waitForSelector('#su-msg .err', { timeout: 8000 }).catch(() => {});
+  check('wrong invite code shows a clear error', /Wrong invite code/.test(await su.textContent('#su-msg')));
+  await su.fill('#su-email', 'me@example.com'); await su.fill('#su-code', 'e2e-invite');
+  await su.click('#su-go'); await sleep(300); await su.waitForSelector('#su-msg .err', { timeout: 8000 }).catch(() => {});
+  check('existing email shows a clear error', /already exists/.test(await su.textContent('#su-msg')));
+  await su.fill('#su-email', 'friend@example.com');
+  await su.click('#su-go'); await su.waitForSelector('#conn .ok-msg', { timeout: 10000 }).catch(() => {});
+  check('right invite code creates the account, saves key + server and connects', /Connected as friend@example.com/.test(await su.textContent('#conn').catch(() => '')) && !!(await su.$('#su-done')));
+  const saved = await su.evaluate(() => chrome.storage.sync.get(['serverUrl', 'apiKey']));
+  check('new API key and server URL saved in extension settings', saved.serverUrl === BASE && /^oe_/.test(saved.apiKey) && saved.apiKey !== KEY);
+  await su.screenshot({ path: path.join(shots, 'settings-signup.png'), fullPage: true });
+  await su.evaluate(async ([s, k]) => chrome.storage.sync.set({ serverUrl: s, apiKey: k }), [BASE, KEY]);
+  await su.close();
+}
 
 check('no uncaught errors in extension pages, service worker or fixture', errors.length === 0, errors.slice(0, 5).join(' | '));
 

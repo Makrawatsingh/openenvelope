@@ -11,7 +11,13 @@
     sendButton: 'div[role="button"][data-tooltip^="Send"], div[role="button"][aria-label^="Send"], div[role="button"].T-I.aoO',
     moreSendOptions: 'div[role="button"][aria-label="More send options"], div[role="button"].T-I.hG',
     subject: 'input[name="subjectbox"]',
-    recipient: '[email], [data-hovercard-id*="@"]',
+    // Recipients (To/Cc/Bcc). Gmail has changed this markup several times, so recipients() combines
+    // several strategies: chip attributes, hidden/visible inputs, chip aria-labels/tooltips, then a
+    // regex over the recipients row text as a last resort.
+    recipientAttr: '[email], [data-hovercard-id*="@"], [data-email]',
+    recipientInput: 'input[name="to"], input[name="cc"], input[name="bcc"], textarea[name="to"], textarea[name="cc"], textarea[name="bcc"], input[aria-label*="recipient" i], input[peoplekit-id], input[aria-label="To"], input[aria-label="Cc"], input[aria-label="Bcc"]',
+    recipientChip: '[role="option"], [role="listitem"], [data-name], [data-tooltip*="@"], [aria-label*="@"], [title*="@"]',
+    fromField: 'input[name="from"], select[name="from"], [name="from"]',
     bccField: 'textarea[name="bcc"], input[aria-label^="BCC" i], input[aria-label^="Bcc"]',
     listRow: 'tr.zA',
     rowSubject: '.bog, .y6 span',
@@ -75,17 +81,32 @@
     bar.innerHTML = `<button type="button" class="tk-toggle" aria-pressed="true" title="OpenEnvelope tracking">✓✓ <span>Tracking</span></button><button type="button" class="tk-more" aria-label="OpenEnvelope options" title="Reminders, templates, polls, buttons, documents">▾</button>`;
     sendBtn.parentElement?.insertAdjacentElement('afterend', bar);
     const tg = bar.querySelector('.tk-toggle');
-    const paint = () => { tg.classList.toggle('off', !ctl.tracking); tg.setAttribute('aria-pressed', String(ctl.tracking)); tg.querySelector('span').textContent = ctl.tracking ? 'Tracking' : 'Not tracked'; };
-    tg.addEventListener('click', () => { ctl.tracking = !ctl.tracking; paint(); if (ctl.tracking) reserve(ctl); });
+    const paint = () => {
+      tg.classList.toggle('off', !ctl.tracking); tg.classList.toggle('waking', !!(ctl.tracking && ctl.waking));
+      tg.setAttribute('aria-pressed', String(ctl.tracking));
+      tg.querySelector('span').textContent = !ctl.tracking ? 'Not tracked' : ctl.waking ? 'Waking your server…' : 'Tracking';
+      tg.title = ctl.waking ? 'OpenEnvelope: your server is starting up (free servers sleep when idle). Tracking will work once it answers.' : 'OpenEnvelope tracking';
+    };
+    ctl.paint = paint;
+    tg.addEventListener('click', () => { ctl.tracking = !ctl.tracking; if (!ctl.tracking) ctl.cancelWait?.(); paint(); if (ctl.tracking) reserve(ctl); });
     bar.querySelector('.tk-more').addEventListener('click', (e) => openMenu(e.currentTarget, ctl));
     paint();
     if (ctl.tracking) reserve(ctl);
   }
   const composes = new Map();
 
-  async function reserve(ctl) {
-    if (ctl.id || !state.config?.configured) return;
-    try { ctl.id = (await apiCall('POST', '/api/emails/reserve')).id; } catch { /* server unreachable: we send untracked */ }
+  // Reserve a tracking id for this compose window. A free-tier server (e.g. Render) can take 30-60 s to
+  // wake up, so the toggle shows "Waking your server…" while the call is pending, and send time retries.
+  const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+  function reserve(ctl, timeoutMs = 60_000) {
+    if (ctl.id || !state.config?.configured) return Promise.resolve(ctl.id);
+    if (ctl.reserving) return ctl.reserving;
+    const slow = setTimeout(() => { ctl.waking = true; ctl.paint?.(); }, 1500);
+    ctl.reserving = withTimeout(apiCall('POST', '/api/emails/reserve'), timeoutMs)
+      .then((r) => { ctl.id = r.id; return ctl.id; })
+      .catch(() => null) // server unreachable: retried at send time
+      .finally(() => { clearTimeout(slow); ctl.reserving = null; ctl.waking = false; ctl.paint?.(); });
+    return ctl.reserving;
   }
 
   function openMenu(anchor, ctl) {
@@ -147,14 +168,58 @@
     if (!ok) body.insertAdjacentHTML('beforeend', html);
   }
 
-  function recipients(root) {
-    const out = new Set();
-    root.querySelectorAll(SEL.recipient).forEach((el) => {
-      if (el.closest(SEL.composeBody)) return;
-      const v = el.getAttribute('email') || el.getAttribute('data-hovercard-id') || '';
-      if (/@/.test(v)) out.add(v.toLowerCase());
+  const EMAIL_RE = /[A-Za-z0-9._%+'-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+  const emailsIn = (s) => String(s || '').match(EMAIL_RE) || [];
+
+  // The signed-in account's own address(es), so they are never counted as recipients.
+  function senderAddresses(root) {
+    const me = new Set(emailsIn(document.title).map((e) => e.toLowerCase()));
+    document.querySelectorAll('a[aria-label*="@"][href*="accounts.google.com"], a[aria-label^="Google Account"]').forEach((a) => emailsIn(a.getAttribute('aria-label')).forEach((e) => me.add(e.toLowerCase())));
+    root?.querySelectorAll(SEL.fromField).forEach((f) => emailsIn(f.value || f.textContent).forEach((e) => me.add(e.toLowerCase())));
+    return me;
+  }
+
+  // The part of the compose window holding To/Cc/Bcc: climb from a recipient field until the next
+  // step up would also contain the subject line or the message body.
+  function recipientArea(root) {
+    const subj = root.querySelector(SEL.subject);
+    const body = root.querySelector(SEL.composeBody);
+    const seeds = root.querySelectorAll(`${SEL.recipientInput}, ${SEL.recipientAttr}`);
+    const areas = new Set();
+    seeds.forEach((seed) => {
+      if (body && body.contains(seed)) return;
+      let el = seed;
+      while (el.parentElement && el.parentElement !== root && !(subj && el.parentElement.contains(subj)) && !(body && el.parentElement.contains(body))) el = el.parentElement;
+      areas.add(el);
     });
-    return out;
+    if (!areas.size && subj) {
+      // Unknown markup: use the rows that come before the subject line (From/To/Cc/Bcc).
+      let el = subj;
+      while (el.parentElement && el.parentElement !== root && !(body && el.parentElement.contains(body))) el = el.parentElement;
+      for (let s = el.previousElementSibling; s; s = s.previousElementSibling) if (!(body && s.contains(body))) areas.add(s);
+      if (el !== subj && !el.contains(body)) areas.add(el);
+    }
+    return [...areas];
+  }
+
+  function recipients(root) {
+    const found = new Set();
+    const body = root.querySelector(SEL.composeBody);
+    const inBody = (el) => !!(el.closest(SEL.composeBody) || (body && body.contains(el)) || el.closest('.openenvelope-bar, .openenvelope-menu'));
+    const add = (s) => emailsIn(s).forEach((e) => found.add(e.toLowerCase().replace(/^[.'-]+|[.'-]+$/g, '')));
+    // 1. chip attributes (classic Gmail)
+    root.querySelectorAll(SEL.recipientAttr).forEach((el) => { if (!inBody(el) && !el.closest(SEL.fromField)) add([el.getAttribute('email'), el.getAttribute('data-hovercard-id'), el.getAttribute('data-email')].join(' ')); });
+    // 2. inputs: hidden "to/cc/bcc" inputs and text typed into a recipient box but not yet turned into a chip
+    root.querySelectorAll(SEL.recipientInput).forEach((el) => { if (!inBody(el)) add(el.value); });
+    const areas = recipientArea(root);
+    for (const area of areas) {
+      // 3. chip aria-label / tooltip / title, e.g. aria-label="Asha Verma <asha@college.edu>"
+      area.querySelectorAll(SEL.recipientChip).forEach((el) => { if (!inBody(el)) add([el.getAttribute('aria-label'), el.getAttribute('data-tooltip'), el.getAttribute('title'), el.getAttribute('data-name')].join(' ')); });
+    }
+    // 4. last resort: any address written in the recipients row text
+    if (!found.size) for (const area of areas) if (!inBody(area)) add(area.textContent);
+    for (const me of senderAddresses(root)) found.delete(me);
+    return found;
   }
 
   // ---------- 3. Intercept Send ----------
@@ -162,18 +227,23 @@
     if (ctl.busy) return; ctl.busy = true;
     try {
       if (ctl.tracking && !ctl.prepared) {
-        await reserve(ctl);
-        if (ctl.id) {
+        // The reserve made when the compose opened may have failed (sleeping server) or still be pending.
+        if (!ctl.id) {
+          ctl.waking = true; paintSending(ctl, true);
+          // Wait up to 45 s; turning the toggle off while waiting sends right away, untracked.
+          await Promise.race([reserve(ctl, 45_000), new Promise((r) => setTimeout(r, 45_000)), new Promise((r) => { ctl.cancelWait = r; })]);
+          ctl.cancelWait = null;
+        }
+        if (ctl.tracking && !ctl.id) throw new Error('reserve failed');
+        if (ctl.tracking) {
           const anchors = [...ctl.body.querySelectorAll('a[href]')].filter((a) => /^https?:/i.test(a.href) && !a.href.startsWith(state.config.serverUrl));
           const btns = anchors.filter((a) => a.dataset.openenvelopeButton);
           const links = anchors.filter((a) => !a.dataset.openenvelopeButton);
           const subject = ctl.root.querySelector(SEL.subject)?.value || document.title.replace(/ - .*$/, '');
           const trackLinks = state.settings?.track_links !== false;
-          const res = await Promise.race([
+          const res = await withTimeout(
             apiCall('POST', `/api/emails/${ctl.id}/prepare`, { subject, recipients: [...recipients(ctl.root)], urls: trackLinks ? links.map((a) => a.href) : [],
-              buttons: btns.map((a) => a.href), remind_hours: ctl.remindHours, remind_mode: ctl.remindMode }),
-            new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 3000)),
-          ]);
+              buttons: btns.map((a) => a.href), remind_hours: ctl.remindHours, remind_mode: ctl.remindMode }), 10_000);
           if (trackLinks) res.links.forEach((l, i) => { if (!l.skipped) links[i].href = l.tracked_url; });
           res.buttons.forEach((l, i) => { if (!l.skipped) btns[i].href = l.tracked_url; });
           const img = document.createElement('img');
@@ -186,9 +256,14 @@
         }
       }
     } catch (e) {
-      toast('OpenEnvelope could not reach your server — this email goes out untracked.');
-    } finally { ctl.busy = false; }
+      toast('OpenEnvelope could not reach your server, so this email went out untracked. If your server is on a free plan it may be asleep; open Settings → Save & test to wake it.', 10_000);
+    } finally { ctl.busy = false; paintSending(ctl, false); }
     if (clickAfter) clickSend(ctl);
+  }
+
+  function paintSending(ctl, on) {
+    if (!on) ctl.waking = false;
+    ctl.paint?.();
   }
 
   function addBcc(root, addr) {
@@ -273,9 +348,9 @@
     msg.prepend(div);
   }
 
-  function toast(text) {
-    const t = document.createElement('div'); t.className = 'openenvelope-toast'; t.setAttribute('role', 'status'); t.textContent = text;
-    document.body.append(t); setTimeout(() => t.remove(), 6000);
+  function toast(text, ms = 6000) {
+    const t = document.createElement('div'); t.className = 'openenvelope-toast'; t.setAttribute('role', 'alert'); t.textContent = text;
+    (document.body || document.documentElement).append(t); setTimeout(() => t.remove(), ms);
   }
 
   async function refreshEmails() {
@@ -292,6 +367,7 @@
     const c = await send({ type: 'config' });
     state.config = c.ok ? c.data : { configured: false };
     if (!state.config.configured) return;
+    send({ type: 'wake' }); // wake a sleeping free-tier server now, before the first compose
     try { state.settings = (await send({ type: 'settings' })).data; } catch {}
     document.querySelectorAll('img').forEach(checkImg);
     refreshEmails();

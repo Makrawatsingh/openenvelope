@@ -15,5 +15,8 @@ services:
       # Invite code your friends type in the extension to create an account on your server.
       - key: SIGNUP_CODE
         sync: false
+      # Anyone with the extension can create an account (no invite code). Remove this and set SIGNUP_CODE to require a code.
+      - key: ALLOW_SIGNUP
+        value: "true"
       - key: DATA_DIR
         value: /data

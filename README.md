@@ -129,7 +129,11 @@ Free tiers and their limits change often, so check the provider's current pricin
 
 ## Share with friends
 
-Friends can use **your** server with their own account (each person sees only their own emails):
+Friends can use **your** server with their own account (each person sees only their own emails).
+
+**Open sign-up (no code):** set `ALLOW_SIGNUP=true` on your server and leave `SIGNUP_CODE` unset. Anyone with the extension then just enters their email and clicks **Create account**. The Server URL box is pre-filled from `DEFAULT_SERVER` in `extension/dashboard/dashboard.js`; change it to your own server if you fork this.
+
+**Invite-only sign-up:**
 
 1. **Set an invite code.** On Render: open your service → **Environment** → **Add Environment Variable** → key `SIGNUP_CODE`, value: any code you choose (e.g. `my-friends-2026`) → **Save**. Render redeploys with it. (Other hosts: set the `SIGNUP_CODE` environment variable.)
 2. **Send your friend three things:** the extension ZIP (GitHub → **Code → Download ZIP**), your server URL (e.g. `https://openenvelope.onrender.com`) and the invite code.

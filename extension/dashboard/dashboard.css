@@ -1,0 +1,14 @@
+.layout{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+nav{background:#fff;border-right:1px solid var(--line);padding:16px 10px;position:sticky;top:0;height:100vh}
+nav .brand{display:flex;gap:8px;align-items:center;font-weight:700;font-size:18px;padding:0 8px 16px}
+nav a{display:block;padding:9px 12px;border-radius:8px;color:var(--ink);text-decoration:none;margin-bottom:2px}nav a[aria-current="page"]{background:#e8f0fe;color:#174ea6;font-weight:600}
+main{padding:24px 28px;max-width:1150px;width:100%}h1{font-size:24px;margin:0 0 16px}h2{font-size:17px;margin:22px 0 10px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+tr.click{cursor:pointer}tr.click:hover{background:#f8f9fa}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.row>*{flex:1 1 180px}.row>.fit{flex:0 0 auto}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}.drawer{position:fixed;inset:0 0 0 auto;width:min(560px,100%);background:#fff;box-shadow:-6px 0 24px #0002;padding:22px;overflow:auto;z-index:10}
+.drawer .close{position:absolute;right:16px;top:16px}.bar{height:8px;background:#e8f0fe;border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--blue)}
+.notice{background:#fef7e0;border:1px solid #f9e3a3;border-radius:10px;padding:10px 14px;font-size:14px;margin-bottom:14px}.err{color:var(--red)}.ok-msg{color:var(--green)}
+.hide-web{}.web .hide-web{display:none}.chips span{display:inline-block;background:#eef1f5;border-radius:999px;padding:2px 8px;margin:2px;font-size:12px}
+@media (max-width:760px){.layout{grid-template-columns:1fr}nav{height:auto;position:static;display:flex;flex-wrap:wrap;gap:4px;border-right:0;border-bottom:1px solid var(--line)}nav .brand{width:100%;padding-bottom:6px}main{padding:16px}.grid2{grid-template-columns:1fr}}

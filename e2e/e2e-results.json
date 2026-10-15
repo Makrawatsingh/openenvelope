@@ -1,0 +1,167 @@
+{
+  "ran_at": "2026-10-15T09:55:26.615Z",
+  "passed": 32,
+  "failed": 0,
+  "results": [
+    {
+      "name": "server boots and CLI creates a user + API key",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "extension service worker starts (manifest V3 loads)",
+      "ok": true,
+      "detail": "chrome-extension://ackjeidfekccjggbhhaiiepdhlbjleme/background.js"
+    },
+    {
+      "name": "manifest parsed by Chrome",
+      "ok": true,
+      "detail": "OpenEnvelope – open-source email tracker for Gmail v0.1.0"
+    },
+    {
+      "name": "settings page connects to the server",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "compose window gets the ✓✓ Tracking toggle",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "send is intercepted once, then released to \"Gmail\" exactly once",
+      "ok": true,
+      "detail": "sends=1"
+    },
+    {
+      "name": "pixel inserted into the outgoing HTML",
+      "ok": true,
+      "detail": "/t/1IVQR6vHTFG4Ms4N.gif"
+    },
+    {
+      "name": "link rewritten to a tracked redirect",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no branding/signature added to the email",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "server registered subject + recipient",
+      "ok": true,
+      "detail": "{\"s\":\"Internship application – IIT KGP\",\"r\":[\"prof.rao@iitkgp.ac.in\"]}"
+    },
+    {
+      "name": "sender browser never fetched its own pixel while composing/sending (blocked)",
+      "ok": true,
+      "detail": "events=0"
+    },
+    {
+      "name": "pixel served as GIF",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "open recorded with Gmail-proxy label",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "background poll returns the open as a notification payload",
+      "ok": true,
+      "detail": "prof.rao@iitkgp.ac.in opened “Internship application – IIT KGP”"
+    },
+    {
+      "name": "toolbar badge shows unread count",
+      "ok": true,
+      "detail": "badge=\"1\""
+    },
+    {
+      "name": "click redirects to the original link",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "click recorded with device",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "mail list shows ✓✓ on the opened tracked email and nothing on others",
+      "ok": true,
+      "detail": "tick=✓✓"
+    },
+    {
+      "name": "sender's own view: pixel stripped or relabelled, open count unchanged",
+      "ok": true,
+      "detail": "src=stripped proxyFetches=0 opens 1->1"
+    },
+    {
+      "name": "thread view shows the open-history banner",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "\"not opened\" reminder fired from the live scheduler",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "daily report renders with real numbers",
+      "ok": true,
+      "detail": "{\"sent\":2,\"opens\":1}"
+    },
+    {
+      "name": "mail merge: personalised per-recipient copies created and \"sent\" (dry-run)",
+      "ok": true,
+      "detail": "recipients=3 skipped=1"
+    },
+    {
+      "name": "campaign stats update per recipient",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tracked PDF renders in the viewer (pdf.js) with watermark",
+      "ok": true,
+      "detail": "pages=2"
+    },
+    {
+      "name": "document view + time-per-page recorded",
+      "ok": true,
+      "detail": "{\"1\":6.8}"
+    },
+    {
+      "name": "e-signature flow completes in the browser with audit trail",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "popup renders connected with recent activity",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "dashboard Activity shows the open",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "email detail drawer shows open history",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "web dashboard (served by the server) works at phone width without horizontal overflow",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no uncaught errors in extension pages, service worker or fixture",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}

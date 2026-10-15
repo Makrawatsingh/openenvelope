@@ -1,0 +1,4 @@
+body.popup{width:360px;margin:0;font-size:14px}.pop-h{display:flex;gap:8px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line)}
+.pop-h .pill{margin-left:auto}main{padding:10px 14px;max-height:470px;overflow:auto}footer{padding:10px 14px;border-top:1px solid var(--line)}footer button{width:100%}
+.switch-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0}h2{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:14px 0 6px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px}

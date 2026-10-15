@@ -1,0 +1,71 @@
+{
+  "manifest_version": 3,
+  "name": "OpenEnvelope – open-source email tracker for Gmail",
+  "short_name": "OpenEnvelope",
+  "version": "0.1.0",
+  "description": "Know when your Gmail emails are opened and links are clicked. Open source, self-hosted, no branding added to your emails.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "OpenEnvelope"
+  },
+  "options_ui": {
+    "page": "dashboard/dashboard.html#settings",
+    "open_in_tab": true
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": [
+    "storage",
+    "alarms",
+    "notifications",
+    "identity",
+    "declarativeNetRequest"
+  ],
+  "host_permissions": [
+    "https://mail.google.com/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://mail.google.com/*"
+      ],
+      "js": [
+        "content/gmail.js"
+      ],
+      "css": [
+        "content/gmail.css"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "oauth2": {
+    "client_id": "REPLACE_WITH_YOUR_OAUTH_CLIENT_ID.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/gmail.send",
+      "https://www.googleapis.com/auth/gmail.readonly"
+    ]
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/*.png"
+      ],
+      "matches": [
+        "https://mail.google.com/*"
+      ]
+    }
+  ]
+}

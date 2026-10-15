@@ -1,0 +1,13 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>OpenEnvelope</title><link rel="stylesheet" href="../dashboard/ui.css"><link rel="stylesheet" href="popup.css"></head>
+<body class="popup"><header class="pop-h"><img src="../icons/icon32.png" alt="" width="20" height="20"><b>OpenEnvelope</b><span id="status" class="pill">…</span></header>
+<main>
+  <section id="setup" hidden><p>Connect your OpenEnvelope server to start tracking.</p><button id="go-settings">Open settings</button></section>
+  <section id="ready" hidden>
+    <label class="switch-row"><span>Track new emails by default</span><input type="checkbox" id="tbd" role="switch"></label>
+    <div class="stats" id="stats"></div>
+    <h2>Recent activity</h2><ul id="activity" class="feed"></ul>
+    <h2>Recently sent</h2><ul id="emails" class="feed"></ul>
+  </section>
+</main>
+<footer><button id="open-dash" class="secondary">Open dashboard</button></footer>
+<script type="module" src="popup.js"></script></body></html>

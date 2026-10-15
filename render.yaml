@@ -1,0 +1,16 @@
+# Render Blueprint. The free plan has no persistent disk, so data is lost on restart/redeploy.
+services:
+  - type: web
+    name: openenvelope
+    runtime: docker
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: BASE_URL
+        sync: false
+      - key: IP_SALT
+        generateValue: true
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: DATA_DIR
+        value: /data

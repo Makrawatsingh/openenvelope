@@ -1,0 +1,42 @@
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+> openenvelope-server@0.1.0 test
+
+✔ CSV parser handles quotes, commas and blank cells; templates support fallbacks (4.227573ms)
+✔ campaign preview renders the first row (58.86298ms)
+✔ mail merge campaign: per-recipient tracked copies, invalid and duplicate rows skipped (20.878891ms)
+✔ extension reports Gmail send results; opens, bounces and unsubscribes show in campaign stats (50.150182ms)
+✔ SMTP campaign (dry-run JSON transport) sends each personalised copy with List-Unsubscribe (22.891847ms)
+✔ scheduled SMTP campaign is sent by the scheduler when due (26.756925ms)
+✔ "not opened" reminder fires once when due and not for opened emails (28.920674ms)
+✔ daily digest: preview renders and the scheduler emails it at the chosen local hour (7.928171ms)
+✔ tracked PDF: password, viewer session, time per page, expiry (204.144711ms)
+✔ video message upload + view tracking (9.15614ms)
+✔ e-signature request: view, sign, audit trail page, signed PDF download (57.46333ms)
+✔ non-PDF upload rejected; served dashboard and pdf.js are reachable (6.038469ms)
+✔ API key is required and checked (64.584687ms)
+✔ signup is admin-only by default (19.833345ms)
+✔ pixel returns a no-cache GIF and records an open with proxy-aware details (23.923892ms)
+✔ pixel for an unknown or reserved (unsent) id records nothing but still returns the GIF (8.249172ms)
+✔ sender's own views are filtered (self-view window and send grace period) (34.782353ms)
+✔ link click redirects to the original URL and is recorded; unsafe/unknown links are not redirected (20.635572ms)
+✔ events feed and stats include opens and clicks but never self-opens (6.907687ms)
+✔ hot conversation alert after N opens within the window, once (31.882995ms)
+✔ old conversation revival alert when an email is reopened after the quiet period (29.238729ms)
+✔ custom alerts: only_domains and do_not_track (54.847795ms)
+✔ IP privacy modes: none stores nothing, full stores the address (37.664361ms)
+✔ webhook (Zapier-style) receives events as JSON (222.755878ms)
+✔ certificate PDF of the tracking record (53.615052ms)
+✔ contacts: CRM notes, lists, export and erase (15.533794ms)
+✔ templates CRUD (16.667329ms)
+✔ polls: vote links record answers, a revote changes the answer (19.575797ms)
+✔ self-view ping that arrives after the proxy fetch re-labels that open as the sender's own (25.115695ms)
+✔ no-reply reminder: fires when no reply was reported, skipped after a reply (37.591449ms)
+ℹ tests 30
+ℹ suites 0
+ℹ pass 30
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6797.733796

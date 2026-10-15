@@ -1,0 +1,15 @@
+.openenvelope-bar{display:inline-flex;gap:2px;margin-left:8px;vertical-align:middle;align-items:center}
+.openenvelope-bar button{font:500 13px/1 'Google Sans',Roboto,Arial,sans-serif;border:1px solid #dadce0;background:#fff;color:#188038;border-radius:16px;padding:7px 10px;cursor:pointer}
+.openenvelope-bar .tk-toggle.off{color:#5f6368;text-decoration:line-through}
+.openenvelope-bar .tk-more{padding:7px 8px;color:#444}
+.openenvelope-bar button:focus-visible,.openenvelope-menu button:focus-visible{outline:2px solid #1a73e8;outline-offset:1px}
+.openenvelope-menu{position:fixed;z-index:99999;width:250px;background:#fff;border-radius:10px;box-shadow:0 4px 18px #0003;padding:8px;font:14px Roboto,Arial,sans-serif;display:flex;flex-direction:column;gap:2px}
+.openenvelope-menu .tk-h{font-size:12px;color:#5f6368;padding:4px 6px}
+.openenvelope-menu select{width:100%;padding:6px;margin-bottom:6px;border-radius:6px;border:1px solid #dadce0}
+.openenvelope-menu button{text-align:left;background:none;border:0;padding:8px 6px;border-radius:6px;cursor:pointer;font:inherit}
+.openenvelope-menu button:hover{background:#f1f3f4}
+.openenvelope-tick{display:inline-block;margin-right:6px;font-weight:700;color:#80868b;letter-spacing:-3px;padding-right:3px}
+.openenvelope-tick.opened{color:#188038}
+.openenvelope-banner{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#e6f4ea;color:#0d652d;border-radius:8px;padding:8px 12px;margin:0 0 12px;font:13px Roboto,Arial,sans-serif}
+.openenvelope-banner button{margin-left:auto;border:0;background:#fff;color:#0d652d;border-radius:12px;padding:4px 10px;cursor:pointer}
+.openenvelope-toast{position:fixed;left:24px;bottom:24px;z-index:99999;background:#202124;color:#fff;padding:12px 16px;border-radius:8px;font:14px Roboto,Arial,sans-serif;max-width:420px}

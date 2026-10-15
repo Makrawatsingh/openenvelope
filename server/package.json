@@ -1,0 +1,20 @@
+{
+  "name": "openenvelope-server",
+  "version": "0.1.0",
+  "description": "Self-hostable backend for OpenEnvelope, an open-source email tracker for Gmail",
+  "type": "module",
+  "main": "src/index.js",
+  "license": "MIT",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "start": "node --no-warnings=ExperimentalWarning src/index.js",
+    "create-user": "node --no-warnings=ExperimentalWarning src/cli.js create-user",
+    "test": "node --no-warnings=ExperimentalWarning --test --test-reporter=spec \"test/**/*.test.js\""
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "nodemailer": "^6.9.16",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "4.10.38"
+  }
+}

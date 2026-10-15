@@ -1,0 +1,16 @@
+services:
+  openenvelope:
+    build: .
+    ports:
+      - "8787:8787"
+    environment:
+      BASE_URL: ${BASE_URL:-http://localhost:8787}
+      IP_SALT: ${IP_SALT:-change-me}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-change-me}
+      SMTP_URL: ${SMTP_URL:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+    volumes:
+      - openenvelope-data:/data
+    restart: unless-stopped
+volumes:
+  openenvelope-data:

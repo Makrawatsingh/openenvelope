@@ -1,0 +1,28 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Inbox - me@example.com - Gmail (test fixture)</title>
+<style>body{font:14px Roboto,Arial;margin:0;background:#f6f8fc}.list{background:#fff;margin:16px;border-radius:12px;width:780px}
+table{width:100%;border-collapse:collapse}tr.zA td{padding:10px;border-bottom:1px solid #eee}.compose{position:fixed;right:24px;bottom:0;width:520px;background:#fff;border-radius:8px 8px 0 0;box-shadow:0 4px 18px #0004}
+.compose .hdr{background:#f2f6fc;padding:10px 14px;border-radius:8px 8px 0 0;font-weight:500}.compose .f{padding:8px 14px;border-bottom:1px solid #eee}
+.chip{background:#e8eaed;border-radius:12px;padding:2px 8px}.body{min-height:140px;padding:12px 14px;outline:none}.foot{padding:10px 14px;display:flex;align-items:center}
+.T-I{background:#0b57d0;color:#fff;border-radius:18px;padding:9px 22px;font-weight:500;cursor:pointer;display:inline-block}.a3s{background:#fff;margin:16px;padding:16px;border-radius:12px;width:748px}</style></head>
+<body>
+<!-- Minimal stand-in for Gmail's DOM, using the same attributes OpenEnvelope's selectors read. Not Gmail. -->
+<div class="list"><table><tbody>
+ <tr class="zA"><td>To: Prof. Rao</td><td><span class="bog">Internship application – IIT KGP</span></td><td>2:41 PM</td></tr>
+ <tr class="zA"><td>To: Asha</td><td><span class="bog">Untracked email</span></td><td>1:10 PM</td></tr>
+</tbody></table></div>
+<div id="thread" class="a3s"><p>(thread view – the sent message will render here)</p></div>
+<div class="compose" role="dialog">
+  <div class="hdr">New Message</div>
+  <div class="f">To <span class="chip" email="prof.rao@iitkgp.ac.in" data-hovercard-id="prof.rao@iitkgp.ac.in">Prof. Rao</span></div>
+  <div class="f"><input name="subjectbox" value="Internship application – IIT KGP" style="border:0;width:100%;font:inherit" aria-label="Subject"></div>
+  <div class="body" contenteditable="true" role="textbox" aria-label="Message Body" g_editable="true">Dear Prof. Rao,<br>My project is at <a href="https://github.com/makrawat/pinn-corona">github.com/makrawat/pinn-corona</a>.<br>Regards</div>
+  <div class="foot"><div><div role="button" class="T-I aoO" data-tooltip="Send ‪(Ctrl-Enter)‬" tabindex="0">Send</div></div></div>
+</div>
+<script>
+  // What "Gmail" would send: capture the body HTML at the moment the send button's click fires.
+  window.__sent = [];
+  document.querySelector('[data-tooltip^="Send"]').addEventListener('click', () => {
+    window.__sent.push({ html: document.querySelector('.body').innerHTML, at: Date.now() });
+  });
+</script>
+</body></html>
